@@ -1,0 +1,22 @@
+extends layout
+
+block content
+  #main
+    .article
+      !{article.content}
+      hr(style="clear:both")
+
+      #disqus_thread.body
+      script
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = 'http://songjinshan.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+
+block sidebar
+  .aside
+    h4 About this Article
+    dl(title="#{article.mtime.toLocaleString()}")
+      dt Last Updated:
+      dd #{article.mtime.toLocaleDateString()}

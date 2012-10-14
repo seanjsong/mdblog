@@ -1,4 +1,12 @@
-mdblog
-======
+songjinshan.com_blog
+====================
 
-A blog web app for writing blog in markdown files
+I've learnt a lot from [wheat](https://github.com/creationix/wheat.git), but now it's time to roll up my own blog app catering for my own needs. Those who are interested can reuse my code and fit in their own views and articles.
+
+TODO
+====
+
+* lazy load article list
+* full text search
+* display number of articles by the side of category name
+* providing download for complete code snippets
