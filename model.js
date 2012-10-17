@@ -1,7 +1,7 @@
-var step = require('step'),
-    fs = require('fs'),
+var fs = require('fs'),
     path = require('path'),
-    marked = require('marked');
+    marked = require('marked'),
+    step = require('./step');
 
 exports.readCategories = function (callback) {
   var root = path.join(__dirname, 'articles'),
@@ -21,11 +21,10 @@ exports.readCategories = function (callback) {
     function (err, stats) {
       if (err) { callback(err); return; }
 
-      return files.filter(function (file, i) {
+      callback(null, files.filter(function (file, i) {
         return stats[i].isDirectory();
-      });
-    },
-    callback
+      }));
+    }
   );
 };
 
@@ -37,31 +36,28 @@ exports.readCategoryArticles = function (category, callback) {
     function () {
       fs.readdir(root, this);
     },
-    // function (err, _files) {
-    //   if (err) { callback(err); return; }
-
-    //   files = _files;
-    //   var group = this.group();
-    //   files.forEach(function (file) { fs.stat(path.join(root, file), group()); });
-    // },
-    function (err, files) {
+    function (err, _files) {
       if (err) { callback(err); return; }
 
+      files = _files;
       var group = this.group();
-      files = files.filter(function (file) {
-        var stats = fs.statSync(path.join(root, file));
-        return stats.isFile() && path.extname(file) == '.md';
-      });
-      files = files.map(function (file) {
+      files.forEach(function (file) { fs.stat(path.join(root, file), group()); });
+    },
+    function (err, stats) {
+      if (err) { callback(err); return; }
+      debugger;
+      var group = this.group();
+      files.filter(function (file, i) {
+        return stats[i].isFile() && path.extname(file) == '.md';
+      }).map(function (file) {
         return path.basename(file, '.md');
-      });
-      files.forEach(function (slug) { exports.readArticle(category, slug, group()); });
+      }).forEach(function (slug) { exports.readArticle(category, slug, group()); });
     },
     function (err, articles) {
       if (err) { callback(err); return; }
-      return articles;
-    },
-    callback
+      debugger;
+      callback(null, articles);
+    }
   );
 };
 
@@ -103,15 +99,15 @@ exports.readArticle = function (category, slug, callback) { // callback(err, art
       var excerpt_end_pos = content.substring(title_pattern.lastIndex).search(/^## (.+)$/m);
       if (~excerpt_end_pos)
         article.excerpt =
-          marked(content.substring(title_pattern.lastIndex, excerpt_end_pos)).
+          marked(content.substr(title_pattern.lastIndex, excerpt_end_pos).trim()).
           replace(/<code class="lang-([a-z0-9]+)">/g, '<code class="brush: $1">'); // to facilitate syntaxhighlighter on client side
       else
         article.excerpt = '';
 
       article.content = marked(content).replace(/<code class="lang-([a-z0-9]+)">/g, '<code class="brush: $1">');
       cache[article_path] = article;
-      return article;
-    },
-    callback
+      debugger;
+      callback(null, article);
+    }
   );
 };

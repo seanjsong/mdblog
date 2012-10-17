@@ -8,30 +8,46 @@ var express = require('express'),
     http = require('http'),
     path = require('path');
 
+var blogApp = express();
+
+blogApp.configure(function(){
+  blogApp.set('views', __dirname + '/views');
+  blogApp.set('view engine', 'jade');
+  blogApp.use(express.logger('dev'));
+  //blogApp.use(express.bodyParser());
+  //blogApp.use(express.methodOverride());
+  blogApp.use(blogApp.router);
+  blogApp.use(express.static(path.join(__dirname, 'public')));
+});
+
+blogApp.configure('development', function(){
+  blogApp.use(express.errorHandler());
+});
+
+blogApp.locals.urlPrefix = '/blog';
+
+function appendSlashRedirect( req, res, next ) {
+  if (req.url[req.url.length-1] != '/') {
+    req.url = blogApp.locals.urlPrefix + req.url + "/";
+    res.writeHead( 301, {'Location': req.url } );
+    res.end();
+    return;
+  }
+  next();
+}
+
+blogApp.get('/', routes.index);
+blogApp.get(/^\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.category);
+blogApp.get(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.article);
+blogApp.get(/^\/[a-z0-9-]+\/[a-z0-9-]+\/.+\.[a-zA-Z0-9]{1,4}$/, function (req, res) {
+  res.sendfile(__dirname + '/articles' + req.url);
+});
+
 var app = express();
 
-app.configure(function(){
+app.configure(function() {
   app.set('port', process.env.PORT || 10000);
-  app.set('views', __dirname + '/views');
-  app.set('view engine', 'jade');
-  app.use(express.logger('dev'));
-  app.use(express.bodyParser());
-  app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(path.join(__dirname, 'public')));
-});
-
-app.configure('development', function(){
-  app.use(express.errorHandler());
-});
-
-app.locals.url_prefix = '/blog';
-
-app.get('/', routes.index);
-app.get(/^\/([a-z0-9-]+)$/, routes.category);
-app.get(/^\/([a-z0-9-]+)\/([a-z0-9-]+)$/, routes.article);
-app.get(/^\/[a-z0-9-]+\/[a-z0-9-]+\/.+\.[a-zA-Z0-9]{1,4}$/, function (req, res) {
-  res.sendfile(__dirname + '/articles' + req.url);
+  app.use(blogApp.locals.urlPrefix, blogApp);
 });
 
 http.createServer(app).listen(app.get('port'), function(){

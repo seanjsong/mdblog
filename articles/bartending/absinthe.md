@@ -4,13 +4,13 @@ Absinthe - my favorite type of liquor, partly for its high alcohol concentration
 
 ## Rudolf
 
-![Rudolf](absinthe/rudolf.jpeg)
+![Rudolf](rudolf.jpeg)
 
 The most common brand that can be bought in China. Due to its high alcohol concentration (68%), the liquid always floats atop in a glass of cocktail, in gleamingly green color.
 
 ## La Clandestine
 
-![La Clandestine](absinthe/laclandestine.jpeg)
+![La Clandestine](laclandestine.jpeg)
 
 Born in Switzerland, somewhat considered to be the origin of absinthe, this brand has a long historical standing. Despite its supreme heredity, it can rarely be found in China. I asked my classmate who studies in Switzerland to bring me a bottle. It has a heavy anis taste. Just take a sip and feel your throat burning, and take a sniff and feel your nose buring - very special feeling:) When mixed with water, it will emulsify and change flavor. I don't like the emulsified taste, so I'd like to drink it straight or mixed with sambuca.
 

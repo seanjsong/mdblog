@@ -1,6 +1,6 @@
 var fs = require('fs'),
     path = require('path'),
-    step = require('step'),
+    step = require('./step'),
     model = require('./model');
 
 exports.index = function (req, res) {

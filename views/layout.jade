@@ -5,24 +5,24 @@ html(lang="en")
     title #{title ? title + " - " : ""}Sean's Blog
     meta(name="description", content="C/C++, JavaScript, Python, Internet, electromusic, bartending, etc.")
     meta(name="viewport", content="width=device-width")
-    link(href="#{url_prefix}/style.css", rel="stylesheet")
-    link(href="#{url_prefix}/print.css", rel="stylesheet", media="print")
+    link(href="#{urlPrefix}/style.css", rel="stylesheet")
+    link(href="#{urlPrefix}/print.css", rel="stylesheet", media="print")
 
-    link(href="http://alexgorbatchev.com/pub/sh/current/styles/shCore.css", rel="stylesheet", type="text/css")
-    link(href="http://alexgorbatchev.com/pub/sh/current/styles/shThemeMidnight.css", rel="stylesheet", type="text/css")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shCore.js", type="text/javascript")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shBrushJScript.js", type="text/javascript")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shBrushCpp.js", type="text/javascript")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shBrushBash.js", type="text/javascript")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shBrushPython.js", type="text/javascript")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shBrushXml.js", type="text/javascript")
-    script(src="http://alexgorbatchev.com/pub/sh/current/scripts/shBrushPlain.js", type="text/javascript")
+    link(href="#{urlPrefix}/shCore.css", rel="stylesheet", type="text/css")
+    link(href="#{urlPrefix}/shThemeMidnight.css", rel="stylesheet", type="text/css")
+    script(src="#{urlPrefix}/shCore.js", type="text/javascript")
+    script(src="#{urlPrefix}/shBrushJScript.js", type="text/javascript")
+    script(src="#{urlPrefix}/shBrushCpp.js", type="text/javascript")
+    script(src="#{urlPrefix}/shBrushBash.js", type="text/javascript")
+    script(src="#{urlPrefix}/shBrushPython.js", type="text/javascript")
+    script(src="#{urlPrefix}/shBrushXml.js", type="text/javascript")
+    script(src="#{urlPrefix}/shBrushPlain.js", type="text/javascript")
     script
       SyntaxHighlighter.config.tagName = 'code';
       SyntaxHighlighter.all();
 
     //- link(rel="alternate", type="application/rss+xml", title="RSS 2.0", href="/blog/feed.xml")
-    link(href="#{url_prefix}/favicon.ico", rel="icon", type="image/x-icon")
+    link(href="#{urlPrefix}/favicon.ico", rel="icon", type="image/x-icon")
     script
       var _gaq = _gaq || [];
       _gaq.push(['_setAccount', 'UA-34437927-1']);
@@ -36,12 +36,12 @@ html(lang="en")
   body
     #container
       #header
-        a(href="#{url_prefix}")
+        a(href="#{urlPrefix}")
           h1 Sean's Blog
         ul
           each category in categories
             li
-              a(href="#{url_prefix}/#{category}") #{category}
+              a(href="#{urlPrefix}/#{category}") #{category}
 
         //- .tagline C/C++, JavaScript, Python, Internet, electromusic, bartending, etc.
 

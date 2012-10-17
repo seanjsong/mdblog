@@ -6,8 +6,8 @@ I believe that describes Tonic and Gin.
 
 ## Bombay Sapphire
 
-![Bombay Sapphire](gin/bombaysapphire.jpeg)
+![Bombay Sapphire](bombaysapphire.jpeg)
 
 ## Beefeater
 
-![Beefeater](gin/beefeater.jpeg)
+![Beefeater](beefeater.jpeg)

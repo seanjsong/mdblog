@@ -7,9 +7,9 @@ block content
         .author
           .date(title="#{article.mtime.toLocaleString()}") #{article.mtime.toLocaleDateString()}
         h3
-          a(href="#{url_prefix}/#{article.category}/#{article.slug}") #{article.title}
+          a(href="#{urlPrefix}/#{article.category}/#{article.slug}") #{article.title}
         !{article.excerpt}
-        a.more(href="#{url_prefix}/#{article.category}/#{article.slug}") Read more...
+        a.more(href="#{urlPrefix}/#{article.category}/#{article.slug}") Read more...
 
 block sidebar
   .aside
