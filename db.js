@@ -7,7 +7,7 @@ var step = require('./step'),
 var http = require('http');
 http.globalAgent.maxSockets = 100;
 
-exports = module.exports = require('riak-js').getClient({host: "localhost", port: "8091"});
+exports = module.exports = require('riak-js').getClient({host: "localhost", port: "8098"});
 
 exports.updateDb = function (callback) {
   var db = this;
