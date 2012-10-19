@@ -1,59 +1,64 @@
 var fs = require('fs'),
     path = require('path'),
     step = require('./step'),
-    model = require('./model');
+    db = require('./db');
 
 exports.index = function (req, res) {
-  var categories;
-
   step(
     function () {
-      model.readCategories(this);
+      db.buckets(this);
     },
-    function (err, _categories) {
+    function (err, categories) {
       if (err) { req.next(err); return; }
 
-      categories = _categories;
-      categories.sort();
+      categories = categories.buckets.sort();
+      this.parallel()(undefined, categories);
+
       var group = this.group();
       categories.forEach(function (category) {
-        model.readCategoryArticles(category, group());
+        db.getAll(category, group());
       });
     },
-    function (err, articles) {
+    function (err, categories, articles) {
       if (err) { req.next(err); return; }
 
-      articles = Array.prototype.concat.apply([], articles); // flatten articles coming from different categories
-      articles.sort(function (a, b) {
-        return b.mtime.getTime() - a.mtime.getTime();
+      // flatten articles coming from different categories, then extract the data portion
+      articles = Array.prototype.concat.apply([], articles).map(function (article) {
+        return article.data;
+      }).sort(function (a, b) {
+        return b.mtime - a.mtime;
       });
+
       res.render('index', { title: '', categories: categories, articles: articles });
     }
   );
 };
 
 exports.category = function (req, res) {
-  var category = req.params[0],
-      categories;
+  var category = req.params[0];
 
   step(
     function () {
-      model.readCategories(this);
+      db.buckets(this);
     },
-    function (err, _categories) {
-      if (err) { req.next(err); return; }
-      if (!~_categories.indexOf(category)) { res.send(404); return; }
-
-      categories = _categories;
-      categories.sort();
-      model.readCategoryArticles(category, this);
-    },
-    function (err, articles) {
+    function (err, categories) {
       if (err) { req.next(err); return; }
 
-      articles.sort(function (a, b) {
-        return b.mtime.getTime() - a.mtime.getTime();
+      categories = categories.buckets.sort();
+      if (!~categories.indexOf(category)) { res.send(404); return; }
+
+      this.parallel()(undefined, categories);
+      db.getAll(category, this.parallel());
+    },
+    function (err, categories, articles) {
+      if (err) { req.next(err); return; }
+
+      articles = articles.map(function (article) {
+        return article.data;
+      }).sort(function (a, b) {
+        return b.mtime - a.mtime;
       });
+
       res.render('index', { title: category, categories: categories, articles: articles });
     }
   );
@@ -61,22 +66,22 @@ exports.category = function (req, res) {
 
 exports.article = function (req, res) {
   var category = req.params[0],
-      slug = req.params[1],
-      categories;
+      slug = req.params[1];
 
   step(
     function () {
-      model.readCategories(this);
+      db.buckets(this);
     },
-    function (err, _categories) {
+    function (err, categories) {
       if (err) { req.next(err); return; }
-      if (!~_categories.indexOf(category)) { res.send(404); return; }
 
-      categories = _categories;
-      categories.sort();
-      model.readArticle(category, slug, this);
+      categories = categories.buckets.sort();
+      if (!~categories.indexOf(category)) { res.send(404); return; }
+
+      this.parallel()(undefined, categories);
+      db.get(category, slug, this.parallel());
     },
-    function (err, article) {
+    function (err, categories, article) {
       if (err) { req.next(err); return; }
 
       res.render('article', { title: article.title, categories: categories, article: article });

@@ -5,7 +5,7 @@ block content
     each article in articles
       .article
         .author
-          .date(title="#{article.mtime.toLocaleString()}") #{article.mtime.toLocaleDateString()}
+          .date(title="#{(new Date(article.mtime)).toLocaleString()}") #{(new Date(article.mtime)).toLocaleDateString()}
         h3
           a(href="#{urlPrefix}/#{article.category}/#{article.slug}") #{article.title}
         !{article.excerpt}

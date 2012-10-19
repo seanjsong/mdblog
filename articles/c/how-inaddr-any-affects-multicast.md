@@ -12,7 +12,7 @@ setsockopt(4, SOL_IP, IP_ADD_MEMBERSHIP, "\351\23\314\205\0\0\0\0", 8) = 0
 
 The trailing `\0\0\0\0` stands for IP address 0.0.0.0. According to the document:
 
-> If the local interface is specified as the wildcard address for IPv4 (`INADDR_ANY`) or as an index of 0 for IPv6, then a single local interface is chosen by the kernel.（<http://codeidol.com/unix/unix-network-programming/Multicasting/Multicast-Socket-Options/>）
+> If the local interface is specified as the wildcard address for IPv4 (`INADDR_ANY`) or as an index of 0 for IPv6, then a single local interface is chosen by the kernel. (<http://codeidol.com/unix/unix-network-programming/Multicasting/Multicast-Socket-Options/>)
 
 I seems that if a system has multiple network interfaces attached and a process on that system joins a mutlicast group bound to `INADDR_ANY`, that doesn't mean that the process can receive from all network interfaces - in fact the kernel will choose an arbitrary network interface for the process to receive from. In this case, if the network interface to which the mutlicast stream arrives is not the one the kernel chooses for the process, the process will receive nothing.
 

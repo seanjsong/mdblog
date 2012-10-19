@@ -17,6 +17,6 @@ block content
 block sidebar
   .aside
     h4 About this Article
-    dl(title="#{article.mtime.toLocaleString()}")
+    dl(title="#{(new Date(article.mtime)).toLocaleString()}")
       dt Last Updated:
-      dd #{article.mtime.toLocaleDateString()}
+      dd #{(new Date(article.mtime)).toLocaleDateString()}

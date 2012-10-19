@@ -8,6 +8,13 @@ var express = require('express'),
     http = require('http'),
     path = require('path');
 
+require('./db').updateDb(function (err) {
+  if (err) {
+    console.log(err);
+    process.exit(1);
+  }
+});
+
 var blogApp = express();
 
 blogApp.configure(function(){

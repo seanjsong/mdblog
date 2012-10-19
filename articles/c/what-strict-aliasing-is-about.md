@@ -19,7 +19,7 @@ int main (void)
 }
 ```
 
-Here’s the result:
+Here's the result:
 
 ```text
 $ gcc test1.c -Wall
@@ -27,7 +27,7 @@ $ ./a.out
 764.000000
 
 $ gcc test1.c -Wall -O3
-test1.c: In function ‘main’:
+test1.c: In function 'main':
 test1.c:10: warning: dereferencing type-punned pointer will break strict-aliasing rules
 $ ./a.out
 0.000000
