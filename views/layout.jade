@@ -36,12 +36,12 @@ html(lang="en")
   body
     #container
       #header
-        a(href="#{urlPrefix}")
+        a(href="#{urlPrefix}/")
           h1 Sean's Blog
         ul
           each category in categories
             li
-              a(href="#{urlPrefix}/#{category}") #{category}
+              a(href="#{urlPrefix}/#{category[0]}/") #{category[0]}(#{category[1]})
 
         //- .tagline C/C++, JavaScript, Python, Internet, electromusic, bartending, etc.
 

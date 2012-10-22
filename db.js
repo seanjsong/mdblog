@@ -1,7 +1,8 @@
 var step = require('./step'),
     path = require('path'),
     fs = require('fs'),
-    marked = require('marked');
+    marked = require('marked'),
+    _ = require('underscore');
 
 // a temporary solution for https://github.com/mostlyserious/riak-js/issues/112
 var http = require('http');
@@ -14,62 +15,80 @@ exports.updateDb = function (callback) {
 
   step(
     function () {
-      readCategories(this.parallel());
-      db.buckets(this.parallel());
+      readCategories(this);
     },
-    function (err, categories, buckets) {
+
+    function (err, categories) {
       if (err) { callback(err); return; }
-
-      // remove from db those invalid categories
-      buckets.buckets.forEach(function (bucket) {
-        if (!~categories.indexOf(bucket))
-          db.keys(bucket, function (err, keys) {
-            if (err) { console.log(err); return; }
-            keys.forEach(function (key) {
-              db.remove(bucket, key, function (err) {
-                if (err) { console.log(err); return; }
-                console.log('Removed: '+bucket+'/'+key);
-              });
-            });
-          });
-      });
-
-      this.parallel()(undefined, categories);
 
       var group = this.group();
       categories.forEach(function (category) {
         readCategorySlugs(category, group());
       });
+
+      db.keys('blog', this.parallel());
     },
-    function (err, categories, slugs) {
+
+    function (err, slugs_fs, slugs_db) {
+      function db_remove(key) {
+        db.remove('blog', key , function (err) {
+          if (err) { console.log('Removing: ' + key + ' ' + err); return; }
+          console.log('Removed: ' + key);
+        });
+      }
+
       if (err) { callback(err); return; }
 
-      var bucket_key_pairs = [];
-      categories.forEach(function (category, i) {
-        // remove from db those invalid articles of each category
-        db.keys(category, function (err, keys) {
-          if (err) { console.log(err); return; }
-          keys.forEach(function (key) {
-            if (!~slugs[i].indexOf(key))
-              db.remove(category, key, function (err) {
-                if (err) { console.log(err); return; }
-                console.log('Removed: '+category+'/'+key);
-              });
-          });
-        });
+      // slugs from filesystem: [{'category1_slug1': mtime1}, {'category1_slug2': mtime2}, {'category2_slug1': mtime3} ...]
+      slugs_fs = _.extend.apply(null, _.flatten(slugs_fs)); // {'category1_slug1': mtime1, 'category1_slug2': mtime2, 'category2_slug1': mtime3 ...}
 
-        // flatten all (category, slug) pairs to bucket_key_pairs
-        slugs[i].forEach(function (slug) {
-          bucket_key_pairs.push({ bucket: category, key: slug });
-        });
+      // slugs from db: ['category1_slug1_mtime1', 'category1_slug2_mtime2', 'category2_slug1_mtime3' ...]
+      slugs_db = slugs_db.filter(function (key) { // sanitizing step
+        var key_components = key.split('_'),
+            category = key_components[0],
+            slug = key_components[1],
+            mtime = parseInt(key_components[2]);
+        if (!category || !slug || !mtime) {
+          db_remove(key);
+          return false;
+        } else return true;
+      }).map(function (key) { // [{'category1_slug1': mtime1}, {'category1_slug2': mtime2}, {'category2_slug1': mtime3} ...]
+        var key_components = key.split('_'),
+            category = key_components[0],
+            slug = key_components[1],
+            mtime = parseInt(key_components[2]),
+            o = {};
+        o[category + '_' + slug] = mtime;
+        return o;
+      }).reduce(function (obj1, obj2) { // {'category1_slug1': mtime1, 'category1_slug2': mtime2, 'category2_slug1': mtime3 ...}
+        var category_slug = Object.keys(obj2)[0];
+
+        if (!obj1[category_slug]) { // extend
+          obj1[category_slug] = obj2[category_slug];
+
+        } else if (obj1[category_slug] < obj2[category_slug]) { // de-dup, remove obj1
+          db_remove(category_slug + '_' + obj1[category_slug]);
+          obj1[category_slug] = obj2[category_slug];
+
+        } else {                // de-dup, remove obj2
+          db_remove(category_slug + '_' + obj2[category_slug]);
+        }
+
+        return obj1;
+      }, {});
+
+      // remove invalid keys from db
+      _.each(slugs_db, function (mtime, category_slug) {
+        if (!slugs_fs[category_slug] || slugs_fs[category_slug] != mtime) db_remove(category_slug + '_' + mtime);
       });
 
-      // read file and update db if necessary
       var group = this.group();
-      bucket_key_pairs.forEach(function (bucket_key_pair) {
-        updateArticle(db, bucket_key_pair.bucket, bucket_key_pair.key, group());
+      _.each(slugs_fs, function (mtime, category_slug) {
+        if (!slugs_db[category_slug])
+          updateArticle(db, category_slug + '_' + mtime, group());
       });
     },
+
     function (err) {
       callback(err);
     }
@@ -121,53 +140,39 @@ function readCategorySlugs (category, callback) {
 
       callback(
         undefined,
-        files.filter(function (file, i) {
-          return stats[i].isFile() && path.extname(file) == '.md';
-        }).map(function (file) {
-          return path.basename(file, '.md');
+        _.zip(files, stats).filter(function (file_stats) { // [['slug1.md', stats1], ['slug2.md', stats2] ...]
+          return file_stats[1].isFile() && path.extname(file_stats[0]) == '.md';
+        }).map(function (file_stats) { // [{'category1_slug1': mtime1}, {'category1_slug2': mtime2} ...]
+          var o = {};
+          o[category + '_' + path.basename(file_stats[0], '.md')] = file_stats[1].mtime.getTime();
+          return o;
         })
       );
     }
   );
 }
 
-// article value is {mtime: <Date>, category: <String>, slug: <String>, title: <String>, excerpt: <html String>, content: <html String>}
-function updateArticle (db, category, slug, callback) { // callback(err, article)
-  var article_path = path.join(__dirname, 'articles', category, slug) + ".md";
-  var article = {};
+// article value is {title: <String>, excerpt: <html String>, content: <html String>}
+// callback(err)
+function updateArticle (db, key, callback) {
+  var key_components = key.split('_'),
+      category = key_components[0],
+      slug = key_components[1],
+      mtime = parseInt(key_components[2]),
+      article_path = path.join(__dirname, 'articles', category, slug) + ".md";
 
   step(
     function () {
-      db.get(category, slug, this);
-    },
-    function (err, dbArticle) {
-      if (err) {
-        if (err.statusCode == 404)
-          dbArticle = null;
-        else { callback(err); return; }
-      }
-
-      fs.stat(article_path, this.parallel());
-      this.parallel()(undefined, dbArticle);
-    },
-    function (err, stats, dbArticle) {
-      if (err) { callback(err); return; }
-      if (!stats.isFile()) { callback(new Error("Article is not a regular file")); return; }
-
-      if (dbArticle && dbArticle.mtime >= stats.mtime.getTime()) { callback(undefined); return; }
-
-      article.mtime = stats.mtime.getTime();
-      article.category = category;
-      article.slug = slug;
-
       fs.readFile(article_path, this);
     },
     function (err, buf) {
       if (err) { callback(err); return; }
 
-      var content = buf.toString();
-      var title_pattern = /^# (.+)\n/g;
-      var title_match = title_pattern.exec(content);
+      var article = {category: category, slug: slug, mtime: mtime},
+          content = buf.toString(),
+          title_pattern = /^# (.+)\n/g,
+          title_match = title_pattern.exec(content);
+
       if (!title_match) { callback(new Error('Article title absent')); return; }
       article.title = title_match[1];
 
@@ -180,7 +185,8 @@ function updateArticle (db, category, slug, callback) { // callback(err, article
         article.excerpt = '';
 
       article.content = marked(content).replace(/<code class="lang-([a-z0-9]+)">/g, '<code class="brush: $1">');
-      db.save(category, slug, article, function(err) { if (!err) console.log('Saved '+category+'/'+slug); callback(err); });
+
+      db.save('blog', key, article, function(err) { if (!err) console.log('Saved: '+ key); callback(err); });
     }
   );
 };

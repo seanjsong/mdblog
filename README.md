@@ -8,5 +8,4 @@ TODO
 
 * lazy load article list
 * full text search
-* display number of articles by the side of category name
 * providing download for complete code snippets

@@ -9,6 +9,7 @@
     "express": "3.0.0rc4",
     "jade": "*",
     "marked": ">=0.2.5",
-    "riak-js": ">=0.4.1"
+    "riak-js": ">=0.4.1",
+    "underscore": ">=1.4.2"
   }
 }

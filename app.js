@@ -21,8 +21,6 @@ blogApp.configure(function(){
   blogApp.set('views', __dirname + '/views');
   blogApp.set('view engine', 'jade');
   blogApp.use(express.logger('dev'));
-  //blogApp.use(express.bodyParser());
-  //blogApp.use(express.methodOverride());
   blogApp.use(blogApp.router);
   blogApp.use(express.static(path.join(__dirname, 'public')));
 });
@@ -31,19 +29,21 @@ blogApp.configure('development', function(){
   blogApp.use(express.errorHandler());
 });
 
-blogApp.locals.urlPrefix = '/blog';
+blogApp.locals.urlPrefix = '/blog'; // if you wanna serve this app directly under root, set this to ''
 
 function appendSlashRedirect( req, res, next ) {
-  if (req.url[req.url.length-1] != '/') {
-    req.url = blogApp.locals.urlPrefix + req.url + "/";
-    res.writeHead( 301, {'Location': req.url } );
-    res.end();
+  if (req.path == '/' && req.originalUrl[blogApp.locals.urlPrefix.length] != '/') { // the subroot slash is added by express
+    res.redirect(301, blogApp.locals.urlPrefix + req.url);
+    return;
+  }
+  if (req.path[req.path.length-1] != '/') {
+    res.redirect(301, blogApp.locals.urlPrefix + req.path + '/' + req.url.substr(req.path.length));
     return;
   }
   next();
 }
 
-blogApp.get('/', routes.index);
+blogApp.get('/', appendSlashRedirect, routes.index);
 blogApp.get(/^\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.category);
 blogApp.get(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.article);
 blogApp.get(/^\/[a-z0-9-]+\/[a-z0-9-]+\/.+\.[a-zA-Z0-9]{1,4}$/, function (req, res) {
