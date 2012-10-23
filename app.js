@@ -31,13 +31,15 @@ blogApp.configure('development', function(){
 
 blogApp.locals.urlPrefix = '/blog'; // if you wanna serve this app directly under root, set this to ''
 
-function appendSlashRedirect( req, res, next ) {
+function appendSlashRedirect(req, res, next) {
   if (req.path == '/' && req.originalUrl[blogApp.locals.urlPrefix.length] != '/') { // the subroot slash is added by express
-    res.redirect(301, blogApp.locals.urlPrefix + req.url);
+    res.writeHead(301, { 'Location': blogApp.locals.urlPrefix + req.url });
+    res.end();
     return;
   }
   if (req.path[req.path.length-1] != '/') {
-    res.redirect(301, blogApp.locals.urlPrefix + req.path + '/' + req.url.substr(req.path.length));
+    res.writeHead(301, { 'Location': blogApp.locals.urlPrefix + req.path + '/' + req.url.substr(req.path.length) });
+    res.end();
     return;
   }
   next();
