@@ -184,7 +184,10 @@ function updateArticle (db, key, callback) {
       else
         article.excerpt = '';
 
-      article.content = marked(content).replace(/<code class="lang-([a-z0-9]+)">/g, '<code class="brush: $1">');
+      article.content =
+        marked(content)
+        .replace(/<code class="lang-([a-z0-9]+)">/g, '<code class="brush: $1">')
+        .replace(/<img src="([^"]+)"/g, '<img src="' + 'api/article/' + category + '/' + slug + '/' + '$1"');
 
       db.save('blog', key, article, function(err) { if (!err) console.log('Saved: '+ key); callback(err); });
     }

@@ -44,6 +44,18 @@ function month_to_interval(month) {
   };
 }
 
+exports.categories = function (req, res) {
+  step(
+    function () {
+      getCategories(this);
+    },
+    function (err, categories) {
+      categories = _.pairs(categories).sort(function (a, b) { return a[0] > b[0]; });
+      res.json({ categories: categories });
+    }
+  );
+};
+
 exports.index = function (req, res) {
   if (!req.query.month)
     req.query.month = new Date().toISOString().substring(0,7);
@@ -52,19 +64,18 @@ exports.index = function (req, res) {
 
   step(
     function () {
-      getCategories(this.parallel());
-
       db.add({ bucket: 'blog',
                key_filters: [['tokenize', '_', 3], ['string_to_int'], ['between', interval.start, interval.end]] })
-        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this.parallel());
+        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this);
     },
-    function (err, categories, articles) {
+    function (err, articles) {
       if (err) { req.next(err); return; }
 
-      categories = _.pairs(categories).sort(function (a, b) { return a[0] > b[0]; });
-      articles = articles.sort(function (a, b) { return b.mtime - a.mtime; });
-
-      res.render('index', { title: '', categories: categories, articles: articles });
+      articles = articles.map(function (article) {
+        delete article.content;
+        return article;
+      }).sort(function (a, b) { return b.mtime - a.mtime; });
+      res.json({ articles: articles });
     }
   );
 };
@@ -84,21 +95,21 @@ exports.category = function (req, res) {
       if (err) { req.next(err); return; }
       if (!(category in categories)) { res.send(404); return; }
 
-      this.parallel()(undefined, categories);
       db.add({ bucket: 'blog',
                key_filters: [['and',
                               [['tokenize', '_', 1], ['eq', category]],
                               [['tokenize', '_', 3], ['string_to_int'], ['between', interval.start, interval.end]]
                              ]] })
-        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this.parallel());
+        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this);
     },
-    function (err, categories, articles) {
+    function (err, articles) {
       if (err) { req.next(err); return; }
 
-      categories = _.pairs(categories).sort(function (a, b) { return a[0] > b[0]; });
-      articles = articles.sort(function (a, b) { return b.mtime - a.mtime; });
-
-      res.render('index', { title: category, categories: categories, articles: articles });
+      articles = articles.map(function (article) {
+        delete article.content;
+        return article;
+      }).sort(function (a, b) { return b.mtime - a.mtime; });
+      res.json({ articles: articles });
     }
   );
 };
@@ -115,19 +126,16 @@ exports.article = function (req, res) {
       if (err) { req.next(err); return; }
       if (!(category in categories)) { res.send(404); return; }
 
-      this.parallel()(undefined, categories);
       db.add({ bucket: 'blog',
                key_filters: [['and',
                               [['tokenize', '_', 1], ['eq', category]],
                               [['tokenize', '_', 2], ['eq', slug]]
                              ]] })
-        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this.parallel());
+        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this);
     },
-    function (err, categories, articles) {
+    function (err, articles) {
       if (err) { req.next(err); return; }
       if (articles.length == 0) { res.send(404); return; }
-
-      categories = _.pairs(categories).sort(function (a, b) { return a[0] > b[0]; });
 
       var article;
       if (articles.length > 1) // just in case db is not completely sanitized
@@ -135,7 +143,7 @@ exports.article = function (req, res) {
       else
         article = articles[0];
 
-      res.render('article', { title: article.title, categories: categories, article: article });
+      res.json({ article: article });
     }
   );
 };

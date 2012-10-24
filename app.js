@@ -45,11 +45,15 @@ function appendSlashRedirect(req, res, next) {
   next();
 }
 
-blogApp.get('/', appendSlashRedirect, routes.index);
-blogApp.get(/^\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.category);
-blogApp.get(/^\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.article);
-blogApp.get(/^\/[a-z0-9-]+\/[a-z0-9-]+\/.+\.[a-zA-Z0-9]{1,4}$/, function (req, res) {
-  res.sendfile(__dirname + '/articles' + req.url);
+blogApp.get('/', appendSlashRedirect, function(req, res) { // this is where our single-page application starts
+  res.sendfile(__dirname + '/public/index.html');
+});
+blogApp.get(/^\/api\/categories\/?$/, appendSlashRedirect, routes.categories);
+blogApp.get(/^\/api\/articles\/?$/, appendSlashRedirect, routes.index);
+blogApp.get(/^\/api\/articles\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.category);
+blogApp.get(/^\/api\/article\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.article);
+blogApp.get(/^\/api\/article\/([a-z0-9-]+\/[a-z0-9-]+\/.+\.[a-zA-Z0-9]{1,4})$/, function (req, res) {
+  res.sendfile(__dirname + '/articles/' + req.params[0]);
 });
 
 var app = express();
