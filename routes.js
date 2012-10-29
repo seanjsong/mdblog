@@ -135,7 +135,7 @@ exports.article = function (req, res) {
     },
     function (err, articles) {
       if (err) { req.next(err); return; }
-      if (articles.length == 0) { res.send(404); return; }
+      if (articles.length === 0) { res.send(404); return; }
 
       var article;
       if (articles.length > 1) // just in case db is not completely sanitized

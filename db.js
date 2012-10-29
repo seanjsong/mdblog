@@ -1,21 +1,22 @@
-var step = require('./step'),
-    path = require('path'),
+var path = require('path'),
     fs = require('fs'),
     marked = require('marked'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    step = require('./step');
 
-// a temporary solution for https://github.com/mostlyserious/riak-js/issues/112
-var http = require('http');
-http.globalAgent.maxSockets = 100;
+// // a workaround for https://github.com/mostlyserious/riak-js/issues/112
+// // since I decide to stick with https://github.com/nullobject/riak-js, I no longer need this workaround
+// var http = require('http');
+// http.globalAgent.maxSockets = 100;
 
 exports = module.exports = require('riak-js').getClient({host: "localhost", port: "8098"});
 
-exports.updateDb = function (callback) {
+exports.updateDb = function (articlesDir, callback) {
   var db = this;
 
   step(
     function () {
-      readCategories(this);
+      readCategories(articlesDir, this);
     },
 
     function (err, categories) {
@@ -23,7 +24,7 @@ exports.updateDb = function (callback) {
 
       var group = this.group();
       categories.forEach(function (category) {
-        readCategorySlugs(category, group());
+        readCategorySlugs(articlesDir, category, group());
       });
 
       db.keys('blog', this.parallel());
@@ -79,13 +80,13 @@ exports.updateDb = function (callback) {
 
       // remove invalid keys from db
       _.each(slugs_db, function (mtime, category_slug) {
-        if (!slugs_fs[category_slug] || slugs_fs[category_slug] != mtime) db_remove(category_slug + '_' + mtime);
+        if (!slugs_fs[category_slug] || slugs_fs[category_slug] !== mtime) db_remove(category_slug + '_' + mtime);
       });
 
       var group = this.group();
       _.each(slugs_fs, function (mtime, category_slug) {
         if (!slugs_db[category_slug])
-          updateArticle(db, category_slug + '_' + mtime, group());
+          updateArticle(db, articlesDir, category_slug + '_' + mtime, group());
       });
     },
 
@@ -95,12 +96,10 @@ exports.updateDb = function (callback) {
   );
 };
 
-function readCategories(callback) {
-  var root = path.join(__dirname, 'articles');
-
+function readCategories(articlesDir, callback) {
   step(
     function () {
-      fs.readdir(root, this);
+      fs.readdir(articlesDir, this);
     },
     function (err, files) {
       if (err) { callback(err); return; }
@@ -108,7 +107,7 @@ function readCategories(callback) {
       this.parallel()(undefined, files);
 
       var group = this.group();
-      files.forEach(function (file) { fs.stat(path.join(root, file), group()); });
+      files.forEach(function (file) { fs.stat(path.join(articlesDir, file), group()); });
     },
     function (err, files, stats) {
       if (err) { callback(err); return; }
@@ -120,8 +119,8 @@ function readCategories(callback) {
   );
 }
 
-function readCategorySlugs (category, callback) {
-  var root = path.join(__dirname, 'articles', category);
+function readCategorySlugs(articlesDir, category, callback) {
+  var root = path.join(articlesDir, category);
 
   step(
     function () {
@@ -141,7 +140,7 @@ function readCategorySlugs (category, callback) {
       callback(
         undefined,
         _.zip(files, stats).filter(function (file_stats) { // [['slug1.md', stats1], ['slug2.md', stats2] ...]
-          return file_stats[1].isFile() && path.extname(file_stats[0]) == '.md';
+          return file_stats[1].isFile() && path.extname(file_stats[0]) === '.md';
         }).map(function (file_stats) { // [{'category1_slug1': mtime1}, {'category1_slug2': mtime2} ...]
           var o = {};
           o[category + '_' + path.basename(file_stats[0], '.md')] = file_stats[1].mtime.getTime();
@@ -154,12 +153,12 @@ function readCategorySlugs (category, callback) {
 
 // article value is {title: <String>, excerpt: <html String>, content: <html String>}
 // callback(err)
-function updateArticle (db, key, callback) {
+function updateArticle(db, articlesDir, key, callback) {
   var key_components = key.split('_'),
       category = key_components[0],
       slug = key_components[1],
       mtime = parseInt(key_components[2]),
-      article_path = path.join(__dirname, 'articles', category, slug) + ".md";
+      article_path = path.join(articlesDir, category, slug) + ".md";
 
   step(
     function () {
