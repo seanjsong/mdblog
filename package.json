@@ -1,13 +1,9 @@
 {
-  "name": "application-name",
+  "name": "mdblog",
   "version": "0.0.1",
   "private": true,
-  "scripts": {
-    "start": "node app"
-  },
   "dependencies": {
     "express": "3.0.0rc4",
-    "jade": "*",
     "marked": ">=0.2.5",
     "riak-js": "https://github.com/seansoong/riak-js/tarball/seansoong",
     "underscore": ">=1.4.2"
