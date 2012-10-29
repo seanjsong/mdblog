@@ -5,7 +5,7 @@
   "dependencies": {
     "express": "3.0.0rc4",
     "marked": ">=0.2.5",
-    "riak-js": "https://github.com/seansoong/riak-js/tarball/seansoong",
+    "riak-js": "latest",
     "underscore": ">=1.4.2"
   },
   "main": "app"

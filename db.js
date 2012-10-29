@@ -4,10 +4,9 @@ var path = require('path'),
     _ = require('underscore'),
     step = require('./step');
 
-// // a workaround for https://github.com/mostlyserious/riak-js/issues/112
-// // since I decide to stick with https://github.com/nullobject/riak-js, I no longer need this workaround
-// var http = require('http');
-// http.globalAgent.maxSockets = 100;
+// a workaround for https://github.com/mostlyserious/riak-js/issues/112
+var http = require('http');
+http.globalAgent.maxSockets = 100;
 
 exports = module.exports = require('riak-js').getClient({host: "localhost", port: "8098"});
 
