@@ -23,7 +23,7 @@ module.exports = function (urlPrefix, articlesDir, staticDir) {
     if (!req.query._escaped_fragment_) { next(); return; }
 
     var content = '',
-        url =  req.protocol + '://' + req.host + urlPrefix + '/index.html#!' + req.query._escaped_fragment_,
+        url =  req.protocol + '://' + req.get('Host') + urlPrefix + '/index.html#!' + req.query._escaped_fragment_,
         phantom = require('child_process').spawn('phantomjs', [__dirname + '/phantom_script.js', url]);
 
     phantom.stdout.setEncoding('utf8');
