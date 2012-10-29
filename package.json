@@ -1,11 +1,12 @@
 {
   "name": "mdblog",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "dependencies": {
     "express": "3.0.0rc4",
     "marked": ">=0.2.5",
     "riak-js": "https://github.com/seansoong/riak-js/tarball/seansoong",
     "underscore": ">=1.4.2"
-  }
+  },
+  "main": "app"
 }

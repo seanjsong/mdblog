@@ -1,8 +1,7 @@
 var express = require('express'),
-    http = require('http'),
     path = require('path'),
     routes = require('./routes'),
-    db = require('db');
+    db = require('./db');
 
 // if you wanna serve this app directly under root, set this to ''
 module.exports = function (urlPrefix, articlesDir, staticDir) {
@@ -16,8 +15,36 @@ module.exports = function (urlPrefix, articlesDir, staticDir) {
 
   var blogApp = express();
 
+
+  var getContent = function(url, callback) {
+  };
+
+  function ajaxCrawling(req, res, next) {
+    if (!req.query._escaped_fragment_) { next(); return; }
+
+    var content = '',
+        url =  req.protocol + '://' + req.host + urlPrefix + '/index.html#!' + req.query._escaped_fragment_,
+        phantom = require('child_process').spawn('phantomjs', [__dirname + '/phantom_script.js', url]);
+
+    phantom.stdout.setEncoding('utf8');
+    phantom.stdout.on('data', function(data) {
+      content += data.toString();
+    });
+    phantom.stderr.on('data', function (data) {
+      console.log('stderr: ' + data);
+    });
+    phantom.on('exit', function(code) {
+      if (code !== 0) {
+        res.send(500);
+      } else {
+        res.send(content);
+      }
+    });
+  }
+
   blogApp.configure(function(){
     blogApp.use(express.logger('dev'));
+    blogApp.use(ajaxCrawling);
     blogApp.use(blogApp.router);
     blogApp.use(express.static(staticDir));
   });
@@ -26,12 +53,9 @@ module.exports = function (urlPrefix, articlesDir, staticDir) {
     blogApp.use(express.errorHandler());
   });
 
+//  function redirectRoot
+
   function appendSlashRedirect(req, res, next) {
-    if (req.path === '/' && req.originalUrl[urlPrefix.length] !== '/') { // the subroot slash is added by express
-      res.writeHead(301, { 'Location': urlPrefix + req.url });
-      res.end();
-      return;
-    }
     if (req.path[req.path.length-1] !== '/') {
       res.writeHead(301, { 'Location': urlPrefix + req.path + '/' + req.url.substr(req.path.length) });
       res.end();
@@ -40,9 +64,14 @@ module.exports = function (urlPrefix, articlesDir, staticDir) {
     next();
   }
 
-  blogApp.get('/', appendSlashRedirect, function(req, res) { // this is where our single-page application starts
-    res.sendfile(path.join(staticDir, 'index.html'));
+  blogApp.get('/', function (req, res) {
+    res.writeHead(301, { 'Location': urlPrefix + '/index.html#!' });
+    res.end();
+    return;
   });
+// function(req, res) { // this is where our single-page application starts
+//     res.sendfile(path.join(staticDir, 'index.html'));
+//   });
   blogApp.get(/^\/api\/categories\/?$/, appendSlashRedirect, routes.categories);
   blogApp.get(/^\/api\/articles\/?$/, appendSlashRedirect, routes.index);
   blogApp.get(/^\/api\/articles\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.category);
