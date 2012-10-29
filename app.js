@@ -65,7 +65,7 @@ module.exports = function (urlPrefix, articlesDir, staticDir) {
   }
 
   blogApp.get('/', function (req, res) {
-    res.writeHead(301, { 'Location': urlPrefix + '/index.html#!' });
+    res.writeHead(301, { 'Location': urlPrefix + '/index.html#!/' });
     res.end();
     return;
   });
