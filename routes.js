@@ -42,21 +42,6 @@ var getCategories = (function() {
 })();
 
 /**
- * helper function, convert a date like 2012-09 to an inclusive interval of milliseconds
- * @return {{start: Date number, end: Date number}}
- */
-function month_to_interval(month) {
-  return {
-    start: Date.UTC(parseInt(month.split('-')[0]),
-                    parseInt(month.split('-')[1]) - 1,
-                    1, 0, 0, 0, 0),
-    end: Date.UTC(parseInt(month.split('-')[0]),
-                  parseInt(month.split('-')[1]),
-                  1, 0, 0, 0, 0) - 1
-  };
-}
-
-/**
  * response with category list
  * response format is {categories: Array.<Tuple<string, number>>}
  * string is category name, number is the amount of articles within this category
@@ -76,22 +61,42 @@ exports.categories = function(req, res) {
 };
 
 /**
- * response with article list of all articles within a specified month
- * month is specified in query string like this: ?month=2012-09 (default to current month if absent)
+ * helper function, given page number and total articles, calculate start the end article number
+ * @param {number} page
+ * @param {number} total
+ * @return {{start: number, end: number}}
+ */
+function pageToInterval(page, total) {
+  var PER_PAGE = 10;
+  if ((page-1) * PER_PAGE >= total)
+    return null;
+  else
+    return {start: (page-1) * PER_PAGE, end: _.min([total, page * PER_PAGE])};
+}
+
+/**
+ * response with article list of all articles within a specified page number
+ * page is specified in query string like this: ?page=4 (default to 1 if absent)
  * response format is {articles: Array.<Article>}
  * see updateArticle in db.js for the type of Article
  */
 exports.index = function(req, res) {
-  if (!req.query.month)
-    req.query.month = (new Date()).toISOString().substring(0,7);
-
-  var interval = month_to_interval(req.query.month);
+  var page = req.query.page ? parseInt(req.query.page) : 1;
 
   step(
     function() {
-      db.add({bucket: 'blog',
-              key_filters: [['tokenize', '_', 3], ['string_to_int'], ['between', interval.start, interval.end]]})
-        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this);
+      db.count('blog', this);
+    },
+    function(err, total) {
+      if (err) {req.next(err); return;}
+
+      var interval = pageToInterval(page, total);
+      if (!interval) {res.send(404); return;}
+
+      db.add('blog')
+        .map('Riak.mapValuesJson')
+        .reduce('Riak.reduceSort', 'function(a,b){return b.mtime - a.mtime;}')
+        .reduce('Riak.reduceSlice', [interval.start, interval.end]).run(this);
     },
     function(err, articles) {
       if (err) {req.next(err); return;}
@@ -99,10 +104,9 @@ exports.index = function(req, res) {
       articles = articles.map(function(article) {
         delete article.content;
         return article;
-      }).sort(function(a, b) {return b.mtime - a.mtime;});
+      });
 
-      if (articles[0])
-        res.set('Last-Modified', (new Date(articles[0].mtime)).toGMTString());
+      res.set('Last-Modified', (new Date(articles[0].mtime)).toGMTString());
       res.json({articles: articles});
     }
   );
@@ -110,11 +114,8 @@ exports.index = function(req, res) {
 
 // same as exports.index, except that response only contains article list of a particular category
 exports.category = function(req, res) {
-  if (!req.query.month)
-    req.query.month = (new Date()).toISOString().substring(0,7);
-
   var category = req.params[0],
-      interval = month_to_interval(req.query.month);
+      page = req.query.page ? parseInt(req.query.page) : 1;
 
   step(
     function() {
@@ -124,23 +125,31 @@ exports.category = function(req, res) {
       if (err) {req.next(err); return;}
       if (!(category in categories)) {res.send(404); return;}
 
-      db.add({bucket: 'blog',
-              key_filters: [['and',
-                             [['tokenize', '_', 1], ['eq', category]],
-                             [['tokenize', '_', 3], ['string_to_int'], ['between', interval.start, interval.end]]
-                            ]]})
-        .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this);
+      db.add({bucket: 'blog', key_filters: [['tokenize', '_', 1], ['eq', category]]})
+        .map(function(){return [1];})
+        .reduce('Riak.reduceSum').run(this);
     },
+    function(err, total) {
+      if (err) {req.next(err); return;}
+
+      var interval = pageToInterval(page, total);
+      if (!interval) {res.send(404); return;}
+
+      db.add({bucket: 'blog', key_filters: [['tokenize', '_', 1], ['eq', category]]})
+        .map('Riak.mapValuesJson')
+        .reduce('Riak.reduceSort', 'function(a,b){return b.mtime - a.mtime;}')
+        .reduce('Riak.reduceSlice', [interval.start, interval.end]).run(this);
+    },
+
     function(err, articles) {
       if (err) {req.next(err); return;}
 
       articles = articles.map(function(article) {
         delete article.content;
         return article;
-      }).sort(function(a, b) {return b.mtime - a.mtime;});
+      });
 
-      if (articles[0])
-        res.set('Last-Modified', (new Date(articles[0].mtime)).toGMTString());
+      res.set('Last-Modified', (new Date(articles[0].mtime)).toGMTString());
       res.json({articles: articles});
     }
   );
