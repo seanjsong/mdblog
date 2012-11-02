@@ -54,7 +54,7 @@ exports.categories = function(req, res) {
     },
     function(err, categories) {
       categories = _.pairs(categories).sort(function(a, b) {return a[0] > b[0];});
-      res.set('Expires', (new Date(Date.now()+3600000*24*7)).toGMTString()); // set Expires to one week later
+      res.set('Cache-Control', 'public, max-age=' + (3600*24));
       res.json({categories: categories});
     }
   );

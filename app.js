@@ -61,7 +61,7 @@ module.exports = function(urlPrefix, articlesDir, staticDir) {
     blogApp.use(express.logger('dev'));
     blogApp.use(ajaxCrawling);
     blogApp.use(blogApp.router);
-    blogApp.use(express.static(staticDir));
+    blogApp.use(express.static(staticDir, {maxAge: 3600000*24}));
   });
 
   blogApp.configure('development', function(){
@@ -91,7 +91,7 @@ module.exports = function(urlPrefix, articlesDir, staticDir) {
   blogApp.get(/^\/api\/articles\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.category);
   blogApp.get(/^\/api\/article\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/, appendSlashRedirect, routes.article);
   blogApp.get(/^\/api\/article\/([a-z0-9-]+\/[a-z0-9-]+\/.+\.[a-zA-Z0-9]{1,4})$/, function(req, res) {
-    res.sendfile(path.join(articlesDir, req.params[0]));
+    res.sendfile(req.params[0], {root: articlesDir, maxAge: 3600000*24});
   });
 
   return blogApp;
