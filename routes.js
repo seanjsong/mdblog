@@ -83,7 +83,7 @@ exports.categories = function(req, res) {
  */
 exports.index = function(req, res) {
   if (!req.query.month)
-    req.query.month = new Date().toISOString().substring(0,7);
+    req.query.month = (new Date()).toISOString().substring(0,7);
 
   var interval = month_to_interval(req.query.month);
 
@@ -111,7 +111,7 @@ exports.index = function(req, res) {
 // same as exports.index, except that response only contains article list of a particular category
 exports.category = function(req, res) {
   if (!req.query.month)
-    req.query.month = new Date().toISOString().substring(0,7);
+    req.query.month = (new Date()).toISOString().substring(0,7);
 
   var category = req.params[0],
       interval = month_to_interval(req.query.month);

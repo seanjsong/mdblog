@@ -19,7 +19,6 @@ Besides `npm install` dependencies, you need install [PhantomJS](http://phantomj
 
 ## TODO
 
-* lazy load article list
 * full text search
 * rss feed
 * providing download for complete code snippets
