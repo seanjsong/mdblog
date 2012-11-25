@@ -82,21 +82,34 @@ function pageToInterval(page, total) {
  */
 exports.index = function(req, res) {
   var page = req.query.page ? parseInt(req.query.page) : 1;
+  var search = req.query.search;
 
   step(
     function() {
-      db.count('blog', this);
+      if (search) {
+        db.search.find('blog', 'content:'+search, this);
+      } else {
+        db.count('blog', this);
+      }
     },
     function(err, total) {
       if (err) {req.next(err); return;}
 
-      var interval = pageToInterval(page, total);
-      if (!interval) {res.send(404); return;}
-
-      db.mapreduce.add('blog')
-        .map('Riak.mapValuesJson')
-        .reduce('Riak.reduceSort', 'function(a,b){return b.mtime - a.mtime;}')
-        .reduce('Riak.reduceSlice', [interval.start, interval.end]).run(this);
+      var interval;
+      if (search) {
+        interval = pageToInterval(page, total.docs.length);
+        if (!interval) {res.send(404); return;}
+        this(undefined,
+             total.docs.map(function(doc) {doc.fields.mtime = parseInt(doc.fields.mtime); return doc.fields;})
+             .slice(interval.start, interval.end));
+      } else {
+        interval = pageToInterval(page, total);
+        if (!interval) {res.send(404); return;}
+        db.mapreduce.add('blog')
+          .map('Riak.mapValuesJson')
+          .reduce('Riak.reduceSort', 'function(a,b){return b.mtime - a.mtime;}')
+          .reduce('Riak.reduceSlice', [interval.start, interval.end]).run(this);
+      }
     },
     function(err, articles) {
       if (err) {req.next(err); return;}
