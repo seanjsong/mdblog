@@ -20,7 +20,7 @@ var getCategories = (function() {
 
     step(
       function() {
-        db.add('blog').map(function(v) {
+        db.mapreduce.add('blog').map(function(v) {
           return [v.key.split('_')[0]];
         }).reduce(function(vals) {
           var result = {};
@@ -93,7 +93,7 @@ exports.index = function(req, res) {
       var interval = pageToInterval(page, total);
       if (!interval) {res.send(404); return;}
 
-      db.add('blog')
+      db.mapreduce.add('blog')
         .map('Riak.mapValuesJson')
         .reduce('Riak.reduceSort', 'function(a,b){return b.mtime - a.mtime;}')
         .reduce('Riak.reduceSlice', [interval.start, interval.end]).run(this);
@@ -125,7 +125,7 @@ exports.category = function(req, res) {
       if (err) {req.next(err); return;}
       if (!(category in categories)) {res.send(404); return;}
 
-      db.add({bucket: 'blog', key_filters: [['tokenize', '_', 1], ['eq', category]]})
+      db.mapreduce.add({bucket: 'blog', key_filters: [['tokenize', '_', 1], ['eq', category]]})
         .map(function(){return [1];})
         .reduce('Riak.reduceSum').run(this);
     },
@@ -135,7 +135,7 @@ exports.category = function(req, res) {
       var interval = pageToInterval(page, total);
       if (!interval) {res.send(404); return;}
 
-      db.add({bucket: 'blog', key_filters: [['tokenize', '_', 1], ['eq', category]]})
+      db.mapreduce.add({bucket: 'blog', key_filters: [['tokenize', '_', 1], ['eq', category]]})
         .map('Riak.mapValuesJson')
         .reduce('Riak.reduceSort', 'function(a,b){return b.mtime - a.mtime;}')
         .reduce('Riak.reduceSlice', [interval.start, interval.end]).run(this);
@@ -171,11 +171,11 @@ exports.article = function(req, res) {
       if (err) {req.next(err); return;}
       if (!(category in categories)) {res.send(404); return;}
 
-      db.add({bucket: 'blog',
-              key_filters: [['and',
-                             [['tokenize', '_', 1], ['eq', category]],
-                             [['tokenize', '_', 2], ['eq', slug]]
-                            ]]})
+      db.mapreduce.add({bucket: 'blog',
+                        key_filters: [['and',
+                                       [['tokenize', '_', 1], ['eq', category]],
+                                       [['tokenize', '_', 2], ['eq', slug]]
+                                      ]]})
         .map(function(v){return [Riak.mapValuesJson(v)[0]];}).run(this);
     },
     function(err, articles) {

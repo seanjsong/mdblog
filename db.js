@@ -9,13 +9,6 @@ var path = require('path'),
     _ = require('underscore'),
     step = require('./step');
 
-/**
- * workaround for a bug of riak-js, not perfect though
- * @see https://github.com/mostlyserious/riak-js/issues/112
- */
-var http = require('http');
-http.globalAgent.maxSockets = 100;
-
 exports = module.exports = require('riak-js').getClient({host: "localhost", port: "8098"});
 
 /**
@@ -41,7 +34,12 @@ exports.updateDb = function(articlesDir, callback) {
         readCategorySlugs(articlesDir, category, group());
       });
 
-      db.keys('blog', this.parallel());
+      var blogKeys = [];
+      var callNextStep = this.parallel();
+      db.keys('blog', {keys: 'stream'})
+        .on('keys', function(keyStream) {blogKeys = blogKeys.concat(keyStream);})
+        .on('end', function() {callNextStep(undefined, blogKeys);})
+        .start();
     },
 
     function(err, slugsFs, slugsDb) {
